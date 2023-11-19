@@ -1,0 +1,254 @@
+<html>
+
+<head>
+    <title>Projekt 3</title>
+    <style>
+        canvas {
+            border: 4px solid red;
+            background-color: #000000;
+            width: 94%;
+        }
+
+        #record {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            
+        }
+
+        #timer {
+            position: absolute;
+            top: 80px;
+            right: 10px;
+            font-size: 16px;
+            font-weight: bold;
+        }
+    </style>
+    <script>
+        var myGamePiece1;
+        var myGamePiece2;
+        var myGamePiece3;
+        var myGamer;
+        var grey_shades = ["#B2BEB5", "#A9A9A9", "#808080", "#899499", "#848884"];
+        var startTime;
+        var longestTime = localStorage.getItem("longestTime") || 0;
+        var myGamePieces = [];
+
+        function startGame() {
+            var randomNijansa1 = Math.floor(Math.random() * grey_shades.length);
+            var randomNijansa2 = Math.floor(Math.random() * grey_shades.length);
+            var randomNijansa3 = Math.floor(Math.random() * grey_shades.length);
+            myGamePiece1 = new component(10, 10, grey_shades[randomNijansa1], getRandomX(), getRandomY(), getRandomSpeed());
+            myGamePiece2 = new component(10, 10, grey_shades[randomNijansa2], getRandomX(), getRandomY(), getRandomSpeed());
+            myGamePiece3 = new component(10, 10, grey_shades[randomNijansa3], getRandomX(), getRandomY(), getRandomSpeed());
+            myGamePieces.push(myGamePiece1);
+            myGamePieces.push(myGamePiece2);
+            myGamePieces.push(myGamePiece3);
+
+            myGamer = new componentPlayer(10, 10, "red", 150, 75);
+            startTime = new Date().getTime();
+            updateTimer();
+            displayRecord();
+            myGameArea.start();
+
+            setInterval(function () {
+                var randomNijansa = Math.floor(Math.random() * grey_shades.length);
+                var newGamePiece = new component(10, 10, grey_shades[randomNijansa], getRandomX(), getRandomY(), getRandomSpeed());
+                myGamePieces.push(newGamePiece);
+            }, 700);
+        }
+
+        
+
+        var myGameArea = {
+            canvas: document.createElement("canvas"),
+            start: function () {
+                this.canvas.id = "myGameCanvas";
+                this.context = this.canvas.getContext("2d");
+                document.body.insertBefore(this.canvas, document.body.childNodes[0]);
+                this.frameNo = 0;
+                this.interval = setInterval(updateGameArea, 20);
+
+                window.addEventListener('keydown', function (e) {
+                    myGameArea.keys = (myGameArea.keys || []);
+                    myGameArea.keys[e.code] = true;
+                });
+                window.addEventListener('keyup', function (e) {
+                    myGameArea.keys[e.code] = false;
+                });
+            },
+            stop: function () {
+                clearInterval(this.interval);
+            },
+            clear: function () {
+                this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+            }
+        };
+
+        function componentPlayer(width, height, color, x, y, type) {
+            this.type = type;
+            this.width = width;
+            this.height = height;
+            this.x = x;
+            this.y = y;
+            this.update = function () {
+                ctx = myGameArea.context;
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = "white";
+                ctx.fillStyle = color;
+                ctx.fillRect(this.width / -2, this.height / -2, this.width, this.height);
+                ctx.restore();
+            }
+            this.newPos = function () {
+                if (myGameArea.keys && myGameArea.keys['ArrowLeft']) { this.x -= 2; }
+                if (myGameArea.keys && myGameArea.keys['ArrowRight']) { this.x += 2; }
+                if (myGameArea.keys && myGameArea.keys['ArrowUp']) { this.y -= 2; }
+                if (myGameArea.keys && myGameArea.keys['ArrowDown']) { this.y += 2; }
+
+                if (this.x + this.width / 2 < 0) {
+                    this.x = myGameArea.canvas.width - this.width / 2;
+                } else if (this.x - this.width / 2 > myGameArea.canvas.width) {
+                    this.x = 0 - this.width / 2;
+                }
+                if (this.y + this.height / 2 < 0) {
+                    this.y = myGameArea.canvas.height - this.height / 2;
+                } else if (this.y - this.height / 2 > myGameArea.canvas.height) {
+                    this.y = 0 - this.height / 2;
+                }
+
+                for (var i = 0; i < myGamePieces.length; i++) {
+                    if (checkCollision(this, myGamePieces[i])) {
+                        var currentTime = new Date().getTime() - startTime;
+                        if (currentTime > longestTime) {
+                            longestTime = currentTime;
+                            localStorage.setItem("longestTime", longestTime);
+                        }
+
+                        alert("Game Over! Do you want to play again?");
+                        location.reload();
+                        clearInterval(myGameArea.interval);
+                        break; // Add this line to exit the loop
+                    }
+                }
+            }
+        }
+
+        function component(width, height, color, x, y, speed, type) {
+            this.type = type;
+            this.width = width;
+            this.height = height;
+            this.speed_x = speed;
+            this.speed_y = speed;
+            this.x = x;
+            this.y = y;
+            this.update = function () {
+                ctx = myGameArea.context;
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = "white";
+                ctx.fillStyle = color;
+                ctx.fillRect(this.width / -2, this.height / -2, this.width, this.height);
+                ctx.restore();
+            }
+            this.newPos = function () {
+                if (x <= 150 && y <= 75) {
+                    this.x += this.speed_x;
+                    this.y += this.speed_y;
+                }
+                if (x > 150 && y <= 75) {
+                    this.x -= this.speed_x;
+                    this.y += this.speed_y;
+                }
+                if (x <= 150 && y > 75) {
+                    this.x += this.speed_x;
+                    this.y -= this.speed_y;
+                }
+                if (x > 150 && y > 75) {
+                    this.x -= this.speed_x;
+                    this.y -= this.speed_y;
+                }
+            }
+        }
+
+        function updateGameArea() {
+            myGameArea.clear();
+
+            for (var i = 0; i < myGamePieces.length; i++) {
+                myGamePieces[i].newPos();
+                myGamePieces[i].update();
+            }
+
+            myGamer.newPos();
+            myGamer.update();
+            }
+
+        function getRandomX() {
+            var randomX = Math.random() < 0.5 ?
+                Math.floor(Math.random() * (0 - -150 + 1)) + -150 :
+                Math.floor(Math.random() * (450 - 300 + 1)) + 300;
+            return randomX;
+        }
+
+        function getRandomY() {
+            var randomY = Math.random() < 0.5 ?
+                Math.floor(Math.random() * (0 - -150 + 1)) + -150 :
+                Math.floor(Math.random() * (300 - 150 + 1)) + 150;
+            return randomY;
+        }
+
+        function getRandomSpeed() {
+            return Math.random() * (1.5 - 0.5 + 1) + 0.5;
+        }
+
+        function checkCollision(obj1, obj2) {
+            return (
+                obj1.x < obj2.x + obj2.width &&
+                obj1.x + obj1.width > obj2.x &&
+                obj1.y < obj2.y + obj2.height &&
+                obj1.y + obj1.height > obj2.y
+            );
+        }
+
+        function updateTimer() {
+            var currentTime = new Date().getTime();
+            var elapsedTime = currentTime - startTime;
+
+            var formattedTime = formatTime(elapsedTime);
+
+            document.getElementById("timer").innerHTML ="Vrijeme: <br>" + formattedTime;
+
+            setTimeout(updateTimer, 1);
+        }
+
+        function padNumber(number) {
+            return (number < 10 ? '0' : '') + number;
+        }
+
+        function formatTime(time) {
+            var minutes = Math.floor(time / (60 * 1000));
+            var seconds = Math.floor((time % (60 * 1000)) / 1000);
+            var milliseconds = time % 1000;
+            
+            return padNumber(minutes) + ":" + padNumber(seconds) + "." + padNumber(milliseconds);
+        }
+
+        function displayRecord() {
+            var longestTime = localStorage.getItem("longestTime") || 0;
+            console.log(longestTime);
+            console.log(formatTime(longestTime));
+            document.getElementById("record").innerHTML = "Najbolje<br>vrijeme:   <br>" + formatTime(parseFloat(longestTime));
+        }
+    </script>
+</head>
+
+<body onload="startGame()">
+    <div id="record"></div>
+    <div id="timer"></div>
+</body>
+
+</html>
